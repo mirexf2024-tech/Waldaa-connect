@@ -191,7 +191,6 @@ hr{border:0;border-top:1px solid var(--line);margin:17px 0}
   text-align:center;
   z-index:9999;
 }
-#recaptcha-container{margin-top:10px}
 body.dark{
   --bg:#0d1624;
   --white:#172438;
@@ -211,7 +210,6 @@ body.dark .btn.light{background:#263c59;color:#fff}
 }
 </style>
 
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -227,7 +225,8 @@ body.dark .btn.light{background:#263c59;color:#fff}
   </div>
 
   <div class="lang">
-    <select id="language" onchange="changeLang(this.value)">
+    <select id="language" onchange="changeLang(this.value)"
+            aria-label="Select language">
       <option value="om">Afaan Oromoo</option>
       <option value="en">English</option>
       <option value="am">አማርኛ</option>
@@ -237,23 +236,21 @@ body.dark .btn.light{background:#263c59;color:#fff}
 
 <main>
 
-<!-- WELCOME PAGE -->
+<!-- WELCOME -->
 <section id="welcome" class="page active">
   <div class="hero">
     <div class="eyebrow" data-t="tag">BAGA NAGAAN DHUFTAN</div>
-
     <h1 data-t="title">Waldaa kee,<br>hawaasa kee.</h1>
-
     <p data-t="intro">
-      Barumsa Wangeelaa, faarfannaa fi tajaajila waldaa bakka tokkootti walitti fidu.
+      Barumsa Wangeelaa fi tajaajila waldaa bakka tokkootti.
     </p>
 
-    <button class="btn gold" onclick="show('register')" data-t="register">
-      Akka miseensaatti galmaa'i
+    <button class="btn gold" onclick="show('login')" data-t="login">
+      Seensa
     </button>
 
     <div class="verse">
-      “Waaqayyo ibsaa fi fayyina koo ti.”<br>
+      <span data-t="verse">Waaqayyo ibsaa fi fayyina koo ti.</span><br>
       <b>Faarfannaa 27:1</b>
     </div>
   </div>
@@ -268,19 +265,19 @@ body.dark .btn.light{background:#263c59;color:#fff}
     <div class="tile">
       <div class="emoji">🎶</div>
       <b data-t="songs">Faarfannaa</b>
-      <small data-t="songsSub">Sirboota choir</small>
+      <small data-t="songsSub">Faarfannaa waldaa</small>
     </div>
 
     <div class="tile">
       <div class="emoji">👥</div>
       <b data-t="members">Miseensota</b>
-      <small data-t="membersSub">Galmee waldaa</small>
+      <small data-t="membersSub">Hawaasa waldaa</small>
     </div>
 
     <div class="tile">
-      <div class="emoji">💛</div>
-      <b data-t="giving">Kennaa</b>
-      <small data-t="givingSub">Kurnoo fi kennaa</small>
+      <div class="emoji">🌍</div>
+      <b data-t="languages">Afaanota sadii</b>
+      <small>Oromoo · English · Amharic</small>
     </div>
   </div>
 
@@ -291,116 +288,50 @@ body.dark .btn.light{background:#263c59;color:#fff}
     </p>
   </div>
 
-  <button class="btn full" onclick="show('login')" data-t="login">Seensa</button>
-  <button class="btn light full" onclick="show('register')" data-t="register">
-    Akka miseensaatti galmaa'i
-  </button>
+  <div class="card">
+    <h3 data-t="memberAccess">Miseensa haaraa?</h3>
+    <p class="muted" data-t="contactAdmin">
+      Account argachuuf Admin ykn Pastor waldaa kee qunnami.
+    </p>
+    <button class="btn light full" onclick="show('login')" data-t="login">
+      Seensa
+    </button>
+  </div>
 
   <div class="footer">Waldaa Connect © 2026</div>
 </section>
 
-<!-- REGISTRATION PAGE -->
-<section id="register" class="page">
-  <h2 data-t="newMember">Galmee miseensaa haaraa</h2>
-
-  <div class="card">
-    <p class="muted" data-t="registerInfo">
-      Galmeen kee Admin/Pastor bira ga'a. Gaheen jalqabaa miseensa qofa.
-    </p>
-
-    <form id="registerForm" onsubmit="sendRegistrationOTP(event)">
-      <div class="field">
-        <label data-t="name">Maqaa guutuu</label>
-        <input id="regName" required maxlength="100" autocomplete="name">
-      </div>
-
-      <div class="field">
-        <label data-t="phone">Lakkoofsa bilbilaa</label>
-        <input id="regPhone" type="tel" required maxlength="25"
-               placeholder="0912345678" autocomplete="tel">
-      </div>
-
-      <div class="field">
-        <label data-t="church">Waldaa</label>
-        <select id="regChurch">
-          <option>Waldaa Adamaa</option>
-          <option>Waldaa Finfinnee</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label data-t="message">Ergaa dabalataa (dirqama miti)</label>
-        <textarea id="regMessage" rows="3" maxlength="300"></textarea>
-      </div>
-
-      <button class="btn full" type="submit" id="sendRegOTP">
-        📱 OTP bilbilatti ergi
-      </button>
-    </form>
-
-    <div id="regOTPBox" class="hidden">
-      <hr>
-      <p class="muted">
-        Koodii mirkaneessaa bilbila kee irratti argatte galchi.
-      </p>
-
-      <div class="field">
-        <label>Koodii OTP</label>
-        <input id="regOTP" inputmode="numeric"
-               autocomplete="one-time-code" maxlength="6"
-               placeholder="123456">
-      </div>
-
-      <button class="btn full" onclick="verifyRegistrationOTP()">
-        Mirkaneessi fi galmee ergi
-      </button>
-    </div>
-
-    <div class="note">
-      Galmeen kee OTPn erga mirkanaa'ee booda Firestore irratti kuufama.
-      Raggaasifamuu isaa Admin eeggata.
-    </div>
-
-    <button class="btn light full" onclick="show('welcome')" data-t="back">
-      Duubatti
-    </button>
-  </div>
-</section>
-
-<!-- LOGIN PAGE -->
+<!-- LOGIN -->
 <section id="login" class="page">
   <h2 data-t="login">Seensa</h2>
 
   <div class="card">
-    <p class="muted">
-      Lakkoofsa bilbila keetiin OTP fudhadhu. Jecha iccitii asitti hin barbaachisu.
+    <p class="muted" data-t="loginInfo">
+      Email fi jecha iccitii kee galchi.
     </p>
 
-    <div class="field">
-      <label data-t="phone">Lakkoofsa bilbilaa</label>
-      <input id="loginPhone" type="tel" placeholder="0912345678"
-             autocomplete="tel">
-    </div>
-
-    <button class="btn full" onclick="sendLoginOTP()" id="sendLoginOTPBtn">
-      📱 OTP ergi
-    </button>
-
-    <div id="loginOTPBox" class="hidden">
+    <form id="loginForm" onsubmit="loginEmailPassword(event)">
       <div class="field">
-        <label>Koodii OTP</label>
-        <input id="loginOTP" inputmode="numeric"
-               autocomplete="one-time-code" maxlength="6"
-               placeholder="123456">
+        <label data-t="email">Email</label>
+        <input id="loginEmail" type="email" required
+               autocomplete="username" maxlength="254">
       </div>
 
-      <button class="btn full" onclick="verifyLoginOTP()">
-        Mirkaneessi fi seeni
-      </button>
-    </div>
+      <div class="field">
+        <label data-t="password">Jecha iccitii</label>
+        <input id="loginPassword" type="password" required
+               autocomplete="current-password" maxlength="128">
+      </div>
 
-    <button class="btn light full" onclick="show('register')" data-t="register">
-      Akka miseensaatti galmaa'i
+      <button class="btn full" type="submit" id="loginButton"
+              data-t="login">
+        Seensa
+      </button>
+    </form>
+
+    <button class="btn light full" onclick="resetPassword()"
+            data-t="forgotPassword">
+      Jecha iccitii dagadhe
     </button>
 
     <button class="btn light full" onclick="show('welcome')" data-t="back">
@@ -409,71 +340,120 @@ body.dark .btn.light{background:#263c59;color:#fff}
   </div>
 </section>
 
-<!-- MEMBER PAGE -->
+<!-- PENDING / ACCESS -->
+<section id="pendingPage" class="page">
+  <div class="card">
+    <h2 data-t="pendingTitle">⏳ Eeyyama eeggachaa jirta</h2>
+    <p data-t="pendingText">
+      Admin hanga galmee kee mirkaneessutti eeggadhu.
+    </p>
+    <button class="btn full" onclick="logout()" data-t="logout">Ba'i</button>
+  </div>
+</section>
+
+<!-- MEMBER -->
 <section id="memberHome" class="page">
   <h2 id="memberGreeting">Baga nagaan dhuftan</h2>
 
   <div class="card">
-    <h3>📖 Wangeela</h3>
-    <p class="muted">
-      Kutaan Wangeelaa guutuun itti aansee ni dabalama.
+    <h3>📖 <span data-t="bible">Wangeela</span></h3>
+    <p class="muted" data-t="bibleNotice">
+      Kutaan Wangeelaa bal'aan fuula itti aanu keessatti ni dabalama.
     </p>
+    <div class="note" data-t="memberBibleOnly">
+      Account miseensaa Wangeela dubbisuu qofaaf hayyama qaba.
+    </div>
   </div>
 
   <div class="card">
-    <h3>👤 Odeeffannoo miseensaa</h3>
+    <h3 data-t="memberInfo">Odeeffannoo miseensaa</h3>
     <p id="memberChurchText" class="muted"></p>
     <p>
-      Haala galmee:
+      <span data-t="statusLabel">Haala galmee:</span>
       <span id="memberStatus" class="status approved">Approved</span>
     </p>
   </div>
 
-  <button class="btn light full" onclick="logout()">Ba'i</button>
+  <button class="btn light full" onclick="logout()" data-t="logout">Ba'i</button>
 </section>
 
-<!-- PENDING PAGE -->
-<section id="pendingPage" class="page">
-  <div class="card">
-    <h2>⏳ Eeyyama eeggachaa jirta</h2>
-    <p>
-      Galmeen kee ergameera. Admin/Pastor hanga raggaasisutti
-      kutaa miseensotaa seenuu hin dandeessu.
-    </p>
-    <button class="btn full" onclick="logout()">Ba'i</button>
-  </div>
-</section>
-
-<!-- ADMIN PAGE -->
+<!-- ADMIN -->
 <section id="adminPage" class="page">
-  <h2>🛡️ To'annoo Admin</h2>
+  <h2 data-t="adminTitle">🛡️ To'annoo Admin</h2>
 
-  <div class="note">
+  <div class="note" data-t="adminNotice">
     Fuulli kun Admin mirkanaa'e qofaf banaa dha.
   </div>
 
   <div class="card">
-    <h3>Galmeewwan miseensotaa</h3>
-    <button class="btn full" onclick="loadRegistrations()">
+    <h3 data-t="createMember">Galmee miseensaa dabali</h3>
+
+    <p class="muted" data-t="createMemberInfo">
+      Account Firebase Authentication keessatti duraan uumameef
+      UID isaa galchi.
+    </p>
+
+    <form id="memberForm" onsubmit="addMemberProfile(event)">
+      <div class="field">
+        <label data-t="uidLabel">Firebase UID</label>
+        <input id="newMemberUid" required maxlength="128"
+               autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label data-t="name">Maqaa guutuu</label>
+        <input id="newMemberName" required maxlength="100">
+      </div>
+
+      <div class="field">
+        <label data-t="email">Email miseensaa</label>
+        <input id="newMemberEmail" type="email" required maxlength="254">
+      </div>
+
+      <div class="field">
+        <label data-t="phone">Lakkoofsa bilbilaa</label>
+        <input id="newMemberPhone" type="tel" maxlength="25">
+      </div>
+
+      <div class="field">
+        <label data-t="church">Waldaa</label>
+        <select id="newMemberChurch">
+          <option value="Waldaa Adamaa">Waldaa Adamaa</option>
+          <option value="Waldaa Finfinnee">Waldaa Finfinnee</option>
+        </select>
+      </div>
+
+      <button class="btn full" type="submit" data-t="saveMember">
+        Galmee miseensaa kuusi
+      </button>
+    </form>
+
+    <div class="note" data-t="uidHelp">
+      Account haaraa uumuu: Firebase Console → Authentication → Users
+      → Add user. Achii UID isaa koppii godhi.
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 data-t="memberRecords">Galmeewwan miseensotaa</h3>
+    <button class="btn full" onclick="loadRegistrations()" data-t="refresh">
       Haaromsi galmee
     </button>
     <div id="requestList" class="list"></div>
   </div>
 
-  <button class="btn light full" onclick="logout()">Ba'i</button>
+  <button class="btn light full" onclick="logout()" data-t="logout">Ba'i</button>
 </section>
 
 </main>
 </div>
 
-<div id="recaptcha-container"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script>
 "use strict";
 
-/* 1. FIREBASE CONFIGURATION */
-
+/* FIREBASE CONFIGURATION */
 const firebaseConfig = {
   apiKey: "AIzaSyAR_1Bk6XJGfpR87p4CroA2paNTTNp85KQ",
   authDomain: "church-supper-app.firebaseapp.com",
@@ -488,530 +468,425 @@ const firebaseConfig = {
 let auth = null;
 let db = null;
 let firebaseReady = false;
-let recaptchaVerifier = null;
-let confirmationResult = null;
-let otpMode = "";
 let currentUser = null;
 let currentRegistration = null;
+let routingInProgress = false;
 
-/* 2. TRANSLATIONS */
-
+/* TRANSLATIONS */
 const words = {
   om: {
-    tag: "BAGA NAGAAN DHUFTAN",
-    title: "Waldaa kee,<br>hawaasa kee.",
-    intro: "Barumsa Wangeelaa, faarfannaa fi tajaajila waldaa bakka tokkootti walitti fidu.",
-    register: "Akka miseensaatti galmaa'i",
-    bible: "Wangeela",
-    bibleSub: "Dubbisi, baradhu",
-    songs: "Faarfannaa",
-    songsSub: "Sirboota choir",
-    members: "Miseensota",
-    membersSub: "Galmee waldaa",
-    giving: "Kennaa",
-    givingSub: "Kurnoo fi kennaa",
-    purpose: "Kaayyoo appii kanaa",
-    purposeText: "Tajaajila waldaa fi barumsa hafuuraa salphisuu.",
-    login: "Seensa",
-    newMember: "Galmee miseensaa haaraa",
-    registerInfo: "Galmeen kee Admin/Pastor bira ga'a. Gaheen jalqabaa miseensa qofa.",
-    name: "Maqaa guutuu",
-    phone: "Lakkoofsa bilbilaa",
-    church: "Waldaa",
-    message: "Ergaa dabalataa (dirqama miti)",
-    back: "Duubatti"
+    tag:"BAGA NAGAAN DHUFTAN",
+    title:"Waldaa kee,<br>hawaasa kee.",
+    intro:"Barumsa Wangeelaa fi tajaajila waldaa bakka tokkootti walitti fidu.",
+    login:"Seensa",
+    verse:"Waaqayyo ibsaa fi fayyina koo ti.",
+    bible:"Wangeela",
+    bibleSub:"Dubbisi, baradhu",
+    songs:"Faarfannaa",
+    songsSub:"Faarfannaa waldaa",
+    members:"Miseensota",
+    membersSub:"Hawaasa waldaa",
+    languages:"Afaanota sadii",
+    purpose:"Kaayyoo appii kanaa",
+    purposeText:"Tajaajila waldaa fi barumsa hafuuraa salphisuu.",
+    memberAccess:"Miseensa haaraa?",
+    contactAdmin:"Account argachuuf Admin ykn Pastor waldaa kee qunnami.",
+    loginInfo:"Email fi jecha iccitii kee galchi.",
+    email:"Email",
+    password:"Jecha iccitii",
+    forgotPassword:"Jecha iccitii dagadhe",
+    back:"Duubatti",
+    pendingTitle:"⏳ Eeyyama eeggachaa jirta",
+    pendingText:"Admin hanga galmee kee mirkaneessutti eeggadhu.",
+    logout:"Ba'i",
+    bibleNotice:"Kutaan Wangeelaa bal'aan fuula itti aanu keessatti ni dabalama.",
+    memberBibleOnly:"Account miseensaa Wangeela dubbisuu qofaaf hayyama qaba.",
+    memberInfo:"Odeeffannoo miseensaa",
+    statusLabel:"Haala galmee:",
+    adminTitle:"🛡️ To'annoo Admin",
+    adminNotice:"Fuulli kun Admin mirkanaa'e qofaf banaa dha.",
+    createMember:"Galmee miseensaa dabali",
+    createMemberInfo:"Account Firebase Authentication keessatti duraan uumameef UID isaa galchi.",
+    uidLabel:"Firebase UID",
+    name:"Maqaa guutuu",
+    phone:"Lakkoofsa bilbilaa",
+    church:"Waldaa",
+    saveMember:"Galmee miseensaa kuusi",
+    uidHelp:"Account haaraa uumuu: Firebase Console → Authentication → Users → Add user. Achii UID isaa koppii godhi.",
+    memberRecords:"Galmeewwan miseensotaa",
+    refresh:"Haaromsi galmee",
+    loading:"Fe'amaa jira...",
+    noMembers:"Galmeen miseensaa hin jiru.",
+    approved:"Raggaasifame",
+    rejected:"Didame",
+    pending:"Eeyyama eeggachaa jira",
+    approve:"Eeyyami",
+    reject:"Didi",
+    member:"Miseensa",
+    saved:"Galmeen miseensaa kuufameera.",
+    duplicate:"UID kanaan galmeen duraan jira.",
+    invalidUID:"Firebase UID sirrii galchi.",
+    loginError:"Email ykn jecha iccitii sirrii miti.",
+    loginRequired:"Dura seeni.",
+    permission:"Hayyamni hin jiru. Security Rules ilaali.",
+    firebaseMissing:"Firebase hin qophoofne. Internet kee ilaali.",
+    passwordReset:"Yoo email sirrii ta'e, qajeelfamni password haaromsuu ergameera.",
+    resetEmail:"Dura email kee galchi.",
+    noProfile:"Account kee galmaa'ee hin jiru. Admin waldaa kee qunnami.",
+    adminWelcome:"Baga nagaan dhuftan, Admin.",
+    memberWelcome:"Baga nagaan dhuftan",
+    rejectedInfo:"Galmeen kee didameera. Admin waldaa kee qunnami.",
+    failed:"Hojiin kun hin milkoofne.",
+    emailMismatch:"Email galchite UID account kanaa wajjin wal hin simu.",
+    alreadyApproved:"Galmeen miseensaa duraan raggaasifameera.",
+    profileUpdated:"Galmeen miseensaa haaromfameera."
   },
 
   en: {
-    tag: "WELCOME",
-    title: "Your church,<br>your community.",
-    intro: "Bringing Bible learning, choir songs and church services together in one place.",
-    register: "Register as a member",
-    bible: "Bible",
-    bibleSub: "Read and learn",
-    songs: "Choir songs",
-    songsSub: "Choir music",
-    members: "Members",
-    membersSub: "Church directory",
-    giving: "Giving",
-    givingSub: "Tithes and offerings",
-    purpose: "Purpose of this app",
-    purposeText: "Supporting church services and spiritual learning.",
-    login: "Login",
-    newMember: "New member registration",
-    registerInfo: "Your request goes to Admin/Pastor. New registrations are members only.",
-    name: "Full name",
-    phone: "Phone number",
-    church: "Church",
-    message: "Additional message (optional)",
-    back: "Back"
+    tag:"WELCOME",
+    title:"Your church,<br>your community.",
+    intro:"Bible learning and church services together in one place.",
+    login:"Login",
+    verse:"The Lord is my light and my salvation.",
+    bible:"Bible",
+    bibleSub:"Read and learn",
+    songs:"Choir songs",
+    songsSub:"Church music",
+    members:"Members",
+    membersSub:"Church community",
+    languages:"Three languages",
+    purpose:"Purpose of this app",
+    purposeText:"Supporting church services and spiritual learning.",
+    memberAccess:"New member?",
+    contactAdmin:"Contact your church Admin or Pastor to receive an account.",
+    loginInfo:"Enter your email and password.",
+    email:"Email",
+    password:"Password",
+    forgotPassword:"Forgot password?",
+    back:"Back",
+    pendingTitle:"⏳ Approval pending",
+    pendingText:"Please wait until the Admin approves your membership.",
+    logout:"Log out",
+    bibleNotice:"The expanded Bible section will be added in a later update.",
+    memberBibleOnly:"Member accounts are permitted to read the Bible only.",
+    memberInfo:"Member information",
+    statusLabel:"Registration status:",
+    adminTitle:"🛡️ Admin Control",
+    adminNotice:"This page is only available to an authorized Admin.",
+    createMember:"Add a member profile",
+    createMemberInfo:"Enter the UID of an account already created in Firebase Authentication.",
+    uidLabel:"Firebase UID",
+    name:"Full name",
+    phone:"Phone number",
+    church:"Church",
+    saveMember:"Save member profile",
+    uidHelp:"Create account: Firebase Console → Authentication → Users → Add user. Then copy its UID.",
+    memberRecords:"Member records",
+    refresh:"Refresh records",
+    loading:"Loading...",
+    noMembers:"No member records found.",
+    approved:"Approved",
+    rejected:"Rejected",
+    pending:"Pending approval",
+    approve:"Approve",
+    reject:"Reject",
+    member:"Member",
+    saved:"Member profile saved.",
+    duplicate:"A record with this UID already exists.",
+    invalidUID:"Enter a valid Firebase UID.",
+    loginError:"The email or password is incorrect.",
+    loginRequired:"Please sign in first.",
+    permission:"Permission denied. Check your Security Rules.",
+    firebaseMissing:"Firebase is not ready. Check your internet connection.",
+    passwordReset:"If the email is valid, password reset instructions have been sent.",
+    resetEmail:"Enter your email first.",
+    noProfile:"No member profile found. Contact your church Admin.",
+    adminWelcome:"Welcome, Admin.",
+    memberWelcome:"Welcome",
+    rejectedInfo:"Your membership was rejected. Contact your church Admin.",
+    failed:"The operation failed.",
+    emailMismatch:"The email does not match this account UID.",
+    alreadyApproved:"This member is already approved.",
+    profileUpdated:"Member profile updated."
   },
 
   am: {
-    tag: "እንኳን በደህና መጡ",
-    title: "ቤተ ክርስቲያንዎ፣<br>ማህበረሰብዎ።",
-    intro: "የመጽሐፍ ቅዱስ ትምህርትን፣ መዝሙሮችን እና አገልግሎቶችን በአንድ ቦታ ያገናኛል።",
-    register: "እንደ አባል ይመዝገቡ",
-    bible: "መጽሐፍ ቅዱስ",
-    bibleSub: "አንብብ እና ተማር",
-    songs: "መዝሙሮች",
-    songsSub: "የመዘምራን ቡድን",
-    members: "አባላት",
-    membersSub: "የቤተ ክርስቲያን መዝገብ",
-    giving: "ስጦታ",
-    givingSub: "አሥራት እና ስጦታ",
-    purpose: "የመተግበሪያው ዓላማ",
-    purposeText: "የቤተ ክርስቲያን አገልግሎትን መደገፍ።",
-    login: "መግቢያ",
-    newMember: "አዲስ የአባልነት ምዝገባ",
-    registerInfo: "ጥያቄዎ ለአስተዳዳሪ/ፓስተር ይሄዳል።",
-    name: "ሙሉ ስም",
-    phone: "ስልክ ቁጥር",
-    church: "የቤተ ክርስቲያን ስም",
-    message: "ተጨማሪ መልእክት",
-    back: "ተመለስ"
+    tag:"እንኳን በደህና መጡ",
+    title:"ቤተ ክርስቲያንዎ፣<br>ማህበረሰብዎ።",
+    intro:"የመጽሐፍ ቅዱስ ትምህርትና የቤተ ክርስቲያን አገልግሎት በአንድ ቦታ።",
+    login:"ግባ",
+    verse:"ጌታ ብርሃኔና መድኃኒቴ ነው።",
+    bible:"መጽሐፍ ቅዱስ",
+    bibleSub:"አንብብ እና ተማር",
+    songs:"መዝሙሮች",
+    songsSub:"የቤተ ክርስቲያን መዝሙር",
+    members:"አባላት",
+    membersSub:"የቤተ ክርስቲያን ማህበረሰብ",
+    languages:"ሶስት ቋንቋዎች",
+    purpose:"የመተግበሪያው ዓላማ",
+    purposeText:"የቤተ ክርስቲያን አገልግሎትና መንፈሳዊ ትምህርትን መደገፍ።",
+    memberAccess:"አዲስ አባል?",
+    contactAdmin:"መለያ ለማግኘት የቤተ ክርስቲያንዎን አስተዳዳሪ ወይም ፓስተር ያነጋግሩ።",
+    loginInfo:"ኢሜይልዎንና የይለፍ ቃልዎን ያስገቡ።",
+    email:"ኢሜይል",
+    password:"የይለፍ ቃል",
+    forgotPassword:"የይለፍ ቃል ረሳሁ",
+    back:"ተመለስ",
+    pendingTitle:"⏳ ፈቃድ በመጠባበቅ ላይ",
+    pendingText:"አስተዳዳሪው እስኪያጸድቅዎት ይጠብቁ።",
+    logout:"ውጣ",
+    bibleNotice:"የተሟላው የመጽሐፍ ቅዱስ ክፍል በቀጣይ ዝማኔ ይጨመራል።",
+    memberBibleOnly:"የአባል መለያ መጽሐፍ ቅዱስን ለማንበብ ብቻ ይፈቅዳል።",
+    memberInfo:"የአባል መረጃ",
+    statusLabel:"የምዝገባ ሁኔታ:",
+    adminTitle:"🛡️ የአስተዳዳሪ ቁጥጥር",
+    adminNotice:"ይህ ገጽ ለተፈቀደለት አስተዳዳሪ ብቻ ነው።",
+    createMember:"የአባል መረጃ ጨምር",
+    createMemberInfo:"በFirebase Authentication ውስጥ የተፈጠረውን መለያ UID ያስገቡ።",
+    uidLabel:"Firebase UID",
+    name:"ሙሉ ስም",
+    phone:"ስልክ ቁጥር",
+    church:"ቤተ ክርስቲያን",
+    saveMember:"የአባል መረጃ አስቀምጥ",
+    uidHelp:"መለያ ለመፍጠር: Firebase Console → Authentication → Users → Add user. ከዚያ UID ይቅዱ።",
+    memberRecords:"የአባላት መዝገብ",
+    refresh:"መዝገብ አድስ",
+    loading:"በመጫን ላይ...",
+    noMembers:"የአባል መዝገብ የለም።",
+    approved:"ጸድቋል",
+    rejected:"ተከልክሏል",
+    pending:"ፈቃድ በመጠባበቅ ላይ",
+    approve:"አጽድቅ",
+    reject:"ከልክል",
+    member:"አባል",
+    saved:"የአባል መረጃ ተቀምጧል።",
+    duplicate:"በዚህ UID የተመዘገበ መረጃ አለ።",
+    invalidUID:"ትክክለኛውን Firebase UID ያስገቡ።",
+    loginError:"ኢሜይሉ ወይም የይለፍ ቃሉ ትክክል አይደለም።",
+    loginRequired:"መጀመሪያ ይግቡ።",
+    permission:"ፈቃድ የለም። Security Rules ያረጋግጡ።",
+    firebaseMissing:"Firebase አልተዘጋጀም። ኢንተርኔትዎን ያረጋግጡ።",
+    passwordReset:"ኢሜይሉ ትክክል ከሆነ የይለፍ ቃል ማደሻ መመሪያ ይላካል።",
+    resetEmail:"መጀመሪያ ኢሜይልዎን ያስገቡ።",
+    noProfile:"የአባል መረጃ አልተገኘም። አስተዳዳሪውን ያነጋግሩ።",
+    adminWelcome:"እንኳን ደህና መጡ አስተዳዳሪ።",
+    memberWelcome:"እንኳን ደህና መጡ",
+    rejectedInfo:"ምዝገባዎ ተከልክሏል። አስተዳዳሪውን ያነጋግሩ።",
+    failed:"ስራው አልተሳካም።",
+    emailMismatch:"ኢሜይሉ ከዚህ UID ጋር አይዛመድም።",
+    alreadyApproved:"ይህ አባል ቀድሞውኑ ጸድቋል።",
+    profileUpdated:"የአባሉ መረጃ ተዘምኗል።"
   }
 };
 
-/* 3. INITIALIZE FIREBASE */
-
+/* FIREBASE INITIALIZATION */
 try {
   if (typeof firebase !== "undefined") {
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
-
     auth = firebase.auth();
     db = firebase.firestore();
     firebaseReady = true;
-  } else {
-    console.error("Firebase SDK hin argamne.");
   }
-} catch (error) {
-  console.error("Firebase initialization error:", error);
+} catch (e) {
+  console.error("Firebase initialization:", e);
 }
 
-/* 4. GENERAL FUNCTIONS */
+function t(key) {
+  const lang = localStorage.getItem("wc_lang") || "om";
+  return (words[lang] && words[lang][key]) ||
+         words.om[key] || key;
+}
+
+function changeLang(lang) {
+  if (!words[lang]) lang = "om";
+
+  document.documentElement.lang = lang;
+  localStorage.setItem("wc_lang", lang);
+
+  document.querySelectorAll("[data-t]").forEach(el => {
+    const key = el.dataset.t;
+    if (words[lang][key] !== undefined) {
+      el.innerHTML = words[lang][key];
+    }
+  });
+}
 
 function show(id) {
-  document.querySelectorAll(".page").forEach(function(page) {
-    page.classList.remove("active");
+  document.querySelectorAll(".page").forEach(p => {
+    p.classList.remove("active");
   });
 
-  const target = document.getElementById(id);
-
-  if (target) {
-    target.classList.add("active");
-  } else {
-    console.error("Page hin argamne:", id);
-  }
+  const page = document.getElementById(id);
+  if (page) page.classList.add("active");
 
   window.scrollTo(0, 0);
 
-  if (id === "adminPage") {
-    loadRegistrations();
-  }
+  if (id === "adminPage") loadRegistrations();
 }
 
 function notify(message) {
   const el = document.getElementById("toast");
-  if (!el) return;
-
   el.textContent = message;
   el.style.display = "block";
-
   clearTimeout(window.toastTimer);
-
-  window.toastTimer = setTimeout(function() {
+  window.toastTimer = setTimeout(() => {
     el.style.display = "none";
-  }, 4500);
+  }, 4000);
 }
 
 function toggleDark() {
   document.body.classList.toggle("dark");
-
   localStorage.setItem(
     "wc_dark",
     document.body.classList.contains("dark") ? "1" : "0"
   );
 }
 
-function changeLang(lang) {
-  if (!words[lang]) {
-    lang = "om";
-  }
-
-  document.documentElement.lang = lang;
-
-  document.querySelectorAll("[data-t]").forEach(function(el) {
-    const key = el.dataset.t;
-
-    if (words[lang][key] !== undefined) {
-      el.innerHTML = words[lang][key];
-    }
-  });
-
-  localStorage.setItem("wc_lang", lang);
-}
-
-function safe(value) {
-  return String(value == null ? "" : value).replace(/[&<>"']/g, function(c) {
-    return {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;"
-    }[c];
-  });
-}
-
 function ensureFirebase() {
   if (!firebaseReady || !auth || !db) {
-    notify("Firebase hin qophoofne. Internet fi Firebase SDK ilaali.");
+    notify(t("firebaseMissing"));
     return false;
   }
-
   return true;
 }
 
-/* 5. PHONE NUMBER FORMAT */
-
-function normalizePhone(value) {
-  let phone = String(value || "").trim().replace(/[\s()-]/g, "");
-
-  if (phone.startsWith("00")) {
-    phone = "+" + phone.slice(2);
-  }
-
-  if (/^09\d{8}$/.test(phone)) {
-    phone = "+251" + phone.slice(1);
-  } else if (/^07\d{8}$/.test(phone)) {
-    phone = "+251" + phone.slice(1);
-  } else if (/^251\d{9}$/.test(phone)) {
-    phone = "+" + phone;
-  } else if (/^9\d{8}$/.test(phone)) {
-    phone = "+251" + phone;
-  } else if (/^7\d{8}$/.test(phone)) {
-    phone = "+251" + phone;
-  }
-
-  if (!/^\+[1-9]\d{7,14}$/.test(phone)) {
-    throw new Error(
-      "Lakkoofsa bilbilaa sirrii galchi. Fakkeenya: 0912345678."
-    );
-  }
-
-  return phone;
+function safe(value) {
+  return String(value == null ? "" : value).replace(/[&<>"']/g, c => ({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#39;"
+  })[c]);
 }
 
-/* 6. FIREBASE ERROR MESSAGES */
+function errorMessage(error) {
+  console.error(error);
 
-function firebaseError(error) {
   const code = error && error.code ? error.code : "";
 
-  const messages = {
-    "auth/invalid-phone-number":
-      "Lakkoofsi bilbilaa sirrii miti.",
-    "auth/too-many-requests":
-      "Yaalii baay'ee goote. Booda irra deebi'i.",
-    "auth/quota-exceeded":
-      "Daangaan SMS xumurame. Firebase ilaali.",
-    "auth/captcha-check-failed":
-      "reCAPTCHA hin milkoofne. Fuula irra deebi'i.",
-    "auth/invalid-verification-code":
-      "Koodiin OTP sirrii miti.",
-    "auth/code-expired":
-      "OTP yeroo isaa xumure. Koodii haaraa gaafadhu.",
-    "auth/network-request-failed":
-      "Internet kee ilaali.",
-    "permission-denied":
-      "Hayyamni Firestore hin jiru. Security Rules ilaali.",
-    "unavailable":
-      "Tajaajilli yeroo ammaa hin argamne. Irra deebi'i."
-  };
-
-  return messages[code] ||
-    ("Dogoggorri uumame: " +
-     (error && error.message ? error.message : code || "Unknown error"));
-}
-
-/* 7. RECAPTCHA AND OTP */
-
-function getRecaptcha() {
-  if (recaptchaVerifier) {
-    return recaptchaVerifier;
+  if (code === "permission-denied" ||
+      code === "firestore/permission-denied") {
+    return t("permission");
   }
 
-  recaptchaVerifier = new firebase.auth.RecaptchaVerifier(
-    "recaptcha-container",
-    {
-      size: "invisible",
-      callback: function() {
-        console.log("reCAPTCHA completed");
-      },
-      "expired-callback": function() {
-        notify("reCAPTCHA yeroo isaa xumure. Irra deebi'i.");
-      }
-    }
-  );
-
-  return recaptchaVerifier;
-}
-
-async function requestOTP(phone) {
-  if (!ensureFirebase()) return false;
-
-  try {
-    const verifier = getRecaptcha();
-
-    await verifier.render();
-
-    confirmationResult = await auth.signInWithPhoneNumber(
-      phone,
-      verifier
-    );
-
-    return true;
-
-  } catch (error) {
-    console.error("OTP error:", error);
-
-    if (recaptchaVerifier) {
-      try {
-        recaptchaVerifier.clear();
-      } catch (ignored) {}
-
-      recaptchaVerifier = null;
-    }
-
-    notify(firebaseError(error));
-    return false;
+  if (
+    code === "auth/invalid-credential" ||
+    code === "auth/invalid-login-credentials" ||
+    code === "auth/wrong-password" ||
+    code === "auth/user-not-found"
+  ) {
+    return t("loginError");
   }
+
+  if (code === "auth/too-many-requests") {
+    return "Yaalii baay'ee goote. Booda irra deebi'i.";
+  }
+
+  if (code === "auth/network-request-failed") {
+    return "Internet kee ilaali.";
+  }
+
+  if (code === "auth/email-already-in-use") {
+    return "Email kun duraan account qaba.";
+  }
+
+  return (error && error.message) || t("failed");
 }
 
-/* 8. REGISTER */
-
-async function sendRegistrationOTP(event) {
+/* AUTHENTICATION */
+async function loginEmailPassword(event) {
   event.preventDefault();
-
   if (!ensureFirebase()) return;
 
-  const name = document.getElementById("regName").value.trim();
-  const rawPhone = document.getElementById("regPhone").value;
+  const email = document.getElementById("loginEmail")
+    .value.trim();
+  const password = document.getElementById("loginPassword")
+    .value;
 
-  if (!name) {
-    notify("Maqaa kee guuti.");
-    return;
-  }
-
-  let phone;
-
-  try {
-    phone = normalizePhone(rawPhone);
-  } catch (error) {
-    notify(error.message);
-    return;
-  }
-
-  const button = document.getElementById("sendRegOTP");
+  const button = document.getElementById("loginButton");
   button.disabled = true;
 
-  const success = await requestOTP(phone);
-
-  button.disabled = false;
-
-  if (success) {
-    otpMode = "register";
-
-    document.getElementById("regOTPBox").classList.remove("hidden");
-
-    notify("OTP ergameera. Bilbila kee ilaali.");
-  }
-}
-
-async function verifyRegistrationOTP() {
-  if (!confirmationResult || otpMode !== "register") {
-    notify("Dura OTP gaafadhu.");
-    return;
-  }
-
-  const name = document.getElementById("regName").value.trim();
-  const rawPhone = document.getElementById("regPhone").value;
-  const church = document.getElementById("regChurch").value;
-  const message = document.getElementById("regMessage").value.trim();
-  const code = document.getElementById("regOTP").value.trim();
-
-  if (!name || !code) {
-    notify("Maqaa fi koodii OTP guuti.");
-    return;
-  }
-
   try {
-    const phone = normalizePhone(rawPhone);
-
-    const result = await confirmationResult.confirm(code);
-    const user = result.user;
-
-    const ref = db.collection("registrations").doc(user.uid);
-    const oldDoc = await ref.get();
-
-    if (oldDoc.exists) {
-      const oldData = oldDoc.data();
-
-      if (oldData.status === "Approved") {
-        notify("Galmeen kee duraan raggaasifameera.");
-        await routeAuthenticatedUser(user);
-        return;
-      }
-
-      if (oldData.status === "Pending") {
-        notify("Galmeen kee duraan ergameera. Eeyyama Admin eeggadhu.");
-        await routeAuthenticatedUser(user);
-        return;
-      }
-
-      if (oldData.status === "Rejected") {
-        notify("Galmeen kee duraan didameera. Waldaa kee qunnami.");
-        return;
-      }
-    }
-
-    await ref.set({
-      uid: user.uid,
-      name: name,
-      phone: phone,
-      church: church,
-      message: message,
-      role: "member",
-      status: "Pending",
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    currentUser = user;
-    currentRegistration = {
-      name: name,
-      phone: phone,
-      church: church,
-      status: "Pending",
-      role: "member"
-    };
-
-    document.getElementById("registerForm").reset();
-    document.getElementById("regOTP").value = "";
-    document.getElementById("regOTPBox").classList.add("hidden");
-
-    confirmationResult = null;
-    otpMode = "";
-
-    notify("Galmeen kee ergameera. Eeyyama Admin eeggadhu.");
-    show("pendingPage");
-
+    await auth.signInWithEmailAndPassword(email, password);
+    // onAuthStateChanged handles routing
   } catch (error) {
-    console.error("Registration error:", error);
-    notify(firebaseError(error));
+    notify(errorMessage(error));
+  } finally {
+    button.disabled = false;
   }
 }
 
-/* 9. LOGIN */
-
-async function sendLoginOTP() {
+async function resetPassword() {
   if (!ensureFirebase()) return;
 
-  let phone;
+  const email = document.getElementById("loginEmail")
+    .value.trim();
 
-  try {
-    phone = normalizePhone(
-      document.getElementById("loginPhone").value
-    );
-  } catch (error) {
-    notify(error.message);
-    return;
-  }
-
-  const button = document.getElementById("sendLoginOTPBtn");
-  button.disabled = true;
-
-  const success = await requestOTP(phone);
-
-  button.disabled = false;
-
-  if (success) {
-    otpMode = "login";
-
-    document.getElementById("loginOTPBox").classList.remove("hidden");
-
-    notify("OTP ergameera. Bilbila kee ilaali.");
-  }
-}
-
-async function verifyLoginOTP() {
-  if (!confirmationResult || otpMode !== "login") {
-    notify("Dura OTP gaafadhu.");
-    return;
-  }
-
-  const code = document.getElementById("loginOTP").value.trim();
-
-  if (!code) {
-    notify("Koodii OTP galchi.");
+  if (!email) {
+    notify(t("resetEmail"));
     return;
   }
 
   try {
-    const result = await confirmationResult.confirm(code);
-
-    confirmationResult = null;
-    otpMode = "";
-
-    document.getElementById("loginOTP").value = "";
-    document.getElementById("loginOTPBox").classList.add("hidden");
-
-    await routeAuthenticatedUser(result.user);
-
+    await auth.sendPasswordResetEmail(email);
+    notify(t("passwordReset"));
   } catch (error) {
-    console.error("Login error:", error);
-    notify(firebaseError(error));
+    notify(errorMessage(error));
   }
 }
 
-/* 10. CHECK ADMIN AND MEMBER STATUS */
-
+/* ROUTING AND ROLE CHECK */
 async function routeAuthenticatedUser(user) {
+  if (!user || !ensureFirebase()) return;
+  if (routingInProgress) return;
+
+  routingInProgress = true;
   currentUser = user;
 
   try {
-    const adminDoc = await db.collection("admins")
-      .doc(user.uid)
-      .get();
+    const adminRef = db.collection("admins").doc(user.uid);
+    const adminSnap = await adminRef.get();
 
-    if (adminDoc.exists && adminDoc.data().active === true) {
+    if (
+      adminSnap.exists &&
+      adminSnap.data().active === true &&
+      adminSnap.data().role === "admin"
+    ) {
       show("adminPage");
-      notify("Baga nagaan dhuftan, Admin.");
+      notify(t("adminWelcome"));
       return;
     }
 
-    const registrationDoc = await db.collection("registrations")
-      .doc(user.uid)
-      .get();
+    const memberRef = db.collection("registrations").doc(user.uid);
+    const memberSnap = await memberRef.get();
 
-    if (!registrationDoc.exists) {
-      notify("Galmeen kee hin jiru. Akka miseensaatti galmaa'i.");
-      show("register");
+    if (!memberSnap.exists) {
+      notify(t("noProfile"));
+      show("welcome");
       return;
     }
 
-    const data = registrationDoc.data();
+    const data = memberSnap.data();
     currentRegistration = data;
 
-    if (data.status === "Approved" && data.role === "member") {
+    if (data.role !== "member") {
+      notify(t("noProfile"));
+      show("welcome");
+      return;
+    }
+
+    if (data.status === "Approved") {
       document.getElementById("memberGreeting").textContent =
-        "Baga nagaan dhuftan, " + (data.name || "Miseensa");
+        t("memberWelcome") + ", " + (data.name || "");
 
       document.getElementById("memberChurchText").textContent =
-        "Waldaa: " + (data.church || "");
+        (data.church || "") + " · " + (data.email || user.email || "");
 
-      document.getElementById("memberStatus").textContent = "Approved";
+      document.getElementById("memberStatus").textContent =
+        t("approved");
 
       show("memberHome");
       return;
@@ -1019,205 +894,261 @@ async function routeAuthenticatedUser(user) {
 
     if (data.status === "Pending") {
       show("pendingPage");
-      notify("Eeyyama Admin eeggachaa jirta.");
       return;
     }
 
     if (data.status === "Rejected") {
-      notify("Galmeen kee hin raggaane. Waldaa kee qunnami.");
+      show("pendingPage");
+      notify(t("rejectedInfo"));
       return;
     }
 
-    notify("Haalli galmee kee sirrii miti. Admin qunnami.");
+    show("welcome");
+    notify(t("noProfile"));
 
   } catch (error) {
-    console.error("Account check error:", error);
-    notify(firebaseError(error));
+    notify(errorMessage(error));
+    show("welcome");
+  } finally {
+    routingInProgress = false;
   }
 }
 
-/* 11. ADMIN REGISTRATION REVIEW */
+/* ADMIN CHECK */
+async function isCurrentAdmin() {
+  if (!currentUser || !ensureFirebase()) return false;
 
-async function loadRegistrations() {
-  if (!currentUser || !ensureFirebase()) return;
+  const snap = await db.collection("admins")
+    .doc(currentUser.uid).get();
 
-  const box = document.getElementById("requestList");
+  return snap.exists &&
+    snap.data().active === true &&
+    snap.data().role === "admin";
+}
 
-  box.innerHTML =
-    '<p class="muted">Galmeewwan fe’amaa jiru...</p>';
+/* ADMIN: ADD MEMBER PROFILE
+   Auth account must already exist.
+   Admin creates the profile document only. */
+async function addMemberProfile(event) {
+  event.preventDefault();
+
+  if (!currentUser) {
+    notify(t("loginRequired"));
+    return;
+  }
+
+  const uid = document.getElementById("newMemberUid")
+    .value.trim();
+  const name = document.getElementById("newMemberName")
+    .value.trim();
+  const email = document.getElementById("newMemberEmail")
+    .value.trim().toLowerCase();
+  const phone = document.getElementById("newMemberPhone")
+    .value.trim();
+  const church = document.getElementById("newMemberChurch").value;
+
+  if (!uid || uid.length < 10 || !name || !email) {
+    notify(t("invalidUID"));
+    return;
+  }
 
   try {
-    const adminDoc = await db.collection("admins")
-      .doc(currentUser.uid)
-      .get();
+    if (!(await isCurrentAdmin())) {
+      notify(t("permission"));
+      return;
+    }
 
-    if (!adminDoc.exists || adminDoc.data().active !== true) {
-      box.innerHTML =
-        '<p class="muted">Hayyamni Admin hin jiru.</p>';
+    const ref = db.collection("registrations").doc(uid);
+    const existing = await ref.get();
 
-      notify("Fuula kana ilaaluuf mirga Admin barbaachisa.");
+    if (existing.exists) {
+      notify(t("duplicate"));
+      return;
+    }
+
+    await ref.set({
+      uid: uid,
+      name: name,
+      email: email,
+      phone: phone,
+      church: church,
+      role: "member",
+      status: "Approved",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdBy: currentUser.uid
+    });
+
+    document.getElementById("memberForm").reset();
+    notify(t("saved"));
+    await loadRegistrations();
+
+  } catch (error) {
+    notify(errorMessage(error));
+  }
+}
+
+/* ADMIN: LIST MEMBERS */
+async function loadRegistrations() {
+  const box = document.getElementById("requestList");
+  if (!box || !currentUser) return;
+
+  box.innerHTML = '<p class="muted">' + safe(t("loading")) + '</p>';
+
+  try {
+    if (!(await isCurrentAdmin())) {
+      box.innerHTML = "";
+      notify(t("permission"));
       show("welcome");
       return;
     }
 
-    const snapshot = await db.collection("registrations")
-      .orderBy("createdAt", "desc")
-      .get();
+    const snapshot = await db.collection("registrations").get();
 
     if (snapshot.empty) {
-      box.innerHTML =
-        '<p class="muted">Galmeen haaraan hin jiru.</p>';
+      box.innerHTML = '<p class="muted">' +
+        safe(t("noMembers")) + '</p>';
       return;
     }
 
-    box.innerHTML = snapshot.docs.map(function(doc) {
-      const registration = doc.data();
+    const records = snapshot.docs.map(doc => ({
+      id: doc.id,
+      data: doc.data()
+    }));
+
+    records.sort((a, b) =>
+      String(a.data.name || "").localeCompare(
+        String(b.data.name || "")
+      )
+    );
+
+    box.innerHTML = records.map(record => {
+      const data = record.data;
+      const status = data.status || "Pending";
 
       const statusClass =
-        registration.status === "Approved" ? "approved" :
-        registration.status === "Rejected" ? "rejected" : "";
+        status === "Approved" ? "approved" :
+        status === "Rejected" ? "rejected" : "";
 
       let controls = "";
 
-      if (registration.status === "Pending") {
-        controls =
-          '<div class="actions">' +
-            '<button class="btn good small" ' +
-            'onclick="reviewRegistration(' +
-            "'" + safe(doc.id) + "','Approved'" + ')">' +
-            'Eeyyami</button>' +
-            '<button class="btn bad small" ' +
-            'onclick="reviewRegistration(' +
-            "'" + safe(doc.id) + "','Rejected'" + ')">' +
-            'Didi</button>' +
-          '</div>';
+      if (status !== "Approved") {
+        controls +=
+          '<button class="btn good small" onclick="reviewRegistration(' +
+          "'" + safe(record.id) + "','Approved'" + ')">' +
+          safe(t("approve")) + '</button>';
       }
 
-      return (
-        '<div class="item">' +
-          '<b>' + safe(registration.name || "") + '</b><br>' +
-          '<small>' + safe(registration.phone || "") + '</small><br>' +
-          '<small>' + safe(registration.church || "") + '</small><br>' +
-          '<small>' +
-            safe(registration.message || "Ergaa dabalataa hin qabu") +
-          '</small>' +
-          '<p><span class="status ' + statusClass + '">' +
-            safe(registration.status || "Pending") +
-          '</span></p>' +
-          '<small>Gahee: Miseensa</small>' +
-          controls +
-        '</div>'
-      );
+      if (status !== "Rejected") {
+        controls +=
+          '<button class="btn bad small" onclick="reviewRegistration(' +
+          "'" + safe(record.id) + "','Rejected'" + ')">' +
+          safe(t("reject")) + '</button>';
+      }
+
+      return '<div class="item">' +
+        '<b>' + safe(data.name || "") + '</b><br>' +
+        '<small>' + safe(data.email || "") + '</small><br>' +
+        '<small>' + safe(data.phone || "") + '</small><br>' +
+        '<small>' + safe(data.church || "") + '</small>' +
+        '<p><span class="status ' + statusClass + '">' +
+          safe(status === "Approved" ? t("approved") :
+               status === "Rejected" ? t("rejected") :
+               t("pending")) +
+        '</span></p>' +
+        '<small>' + safe(t("member")) + '</small>' +
+        '<div class="actions">' + controls + '</div>' +
+      '</div>';
     }).join("");
 
   } catch (error) {
-    console.error("Load registrations error:", error);
-
-    box.innerHTML =
-      '<p class="muted">Galmee fe’uun hin milkoofne.</p>';
-
-    notify(firebaseError(error));
+    box.innerHTML = "";
+    notify(errorMessage(error));
   }
 }
 
+/* ADMIN: APPROVE / REJECT */
 async function reviewRegistration(uid, status) {
   if (!currentUser) {
-    notify("Dura seeni.");
+    notify(t("loginRequired"));
     return;
   }
 
-  if (status !== "Approved" && status !== "Rejected") {
-    notify("Haalli galmee kun hin hayyamamu.");
-    return;
-  }
+  if (!["Approved", "Rejected"].includes(status)) return;
 
   try {
-    const adminDoc = await db.collection("admins")
-      .doc(currentUser.uid)
-      .get();
-
-    if (!adminDoc.exists || adminDoc.data().active !== true) {
-      notify("Hayyamni Admin hin jiru.");
+    if (!(await isCurrentAdmin())) {
+      notify(t("permission"));
       return;
     }
 
-    await db.collection("registrations")
-      .doc(uid)
-      .update({
-        status: status,
-        reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        reviewedBy: currentUser.uid
-      });
+    const ref = db.collection("registrations").doc(uid);
+    const snap = await ref.get();
 
-    notify(
-      status === "Approved"
-        ? "Galmeen miseensaa raggaasifame."
-        : "Galmeen miseensaa didame."
-    );
+    if (!snap.exists) {
+      notify(t("noProfile"));
+      return;
+    }
 
+    await ref.update({
+      status: status,
+      reviewedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      reviewedBy: currentUser.uid
+    });
+
+    notify(status === "Approved" ? t("approved") : t("rejected"));
     await loadRegistrations();
 
   } catch (error) {
-    console.error("Review error:", error);
-    notify(firebaseError(error));
+    notify(errorMessage(error));
   }
 }
 
-/* 12. LOGOUT */
-
+/* LOGOUT */
 async function logout() {
-  if (auth) {
-    try {
-      await auth.signOut();
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
+  try {
+    if (auth) await auth.signOut();
+  } catch (error) {
+    console.error(error);
   }
 
   currentUser = null;
   currentRegistration = null;
-  confirmationResult = null;
-  otpMode = "";
-
-  document.getElementById("loginOTP").value = "";
-  document.getElementById("regOTP").value = "";
-
-  document.getElementById("loginOTPBox").classList.add("hidden");
-  document.getElementById("regOTPBox").classList.add("hidden");
-
   show("welcome");
-  notify("Baateetta.");
+  notify(t("logout"));
 }
 
-/* 13. START APP */
-
+/* START APP */
 (function init() {
-  try {
-    const savedLanguage = localStorage.getItem("wc_lang") || "om";
+  const lang = localStorage.getItem("wc_lang") || "om";
+  document.getElementById("language").value = lang;
+  changeLang(lang);
 
-    document.getElementById("language").value = savedLanguage;
-    changeLang(savedLanguage);
-
-    if (localStorage.getItem("wc_dark") === "1") {
-      document.body.classList.add("dark");
-    }
-  } catch (error) {
-    console.error("App settings error:", error);
+  if (localStorage.getItem("wc_dark") === "1") {
+    document.body.classList.add("dark");
   }
 
   if (!firebaseReady) {
-    console.error("Firebase SDK hin argamne.");
+    console.error("Firebase hin qophoofne.");
     return;
   }
 
-  auth.onAuthStateChanged(function(user) {
+  auth.onAuthStateChanged(async user => {
     if (user) {
-      currentUser = user;
-      console.log("Firebase user session argame.");
+      await routeAuthenticatedUser(user);
+    } else {
+      currentUser = null;
+      currentRegistration = null;
+
+      const activePage = document.querySelector(".page.active");
+      if (
+        activePage &&
+        ["adminPage", "memberHome", "pendingPage"].includes(activePage.id)
+      ) {
+        show("welcome");
+      }
     }
   });
 })();
 </script>
-
 </body>
 </html>
