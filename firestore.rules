@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isDeveloper() { return signedIn() && request.auth.token.developer == true; }
+    function memberDoc(churchId, uid) {
+      return get(/databases/$(database)/documents/churches/$(churchId)/members/$(uid));
+    }
+    function hasChurchRole(churchId, roles) {
+      return signedIn()
+        && memberDoc(churchId, request.auth.uid).data.status == 'active'
+        && memberDoc(churchId, request.auth.uid).data.role in roles;
+    }
+
+    match /churchApplications/{applicationId} {
+      allow create: if signedIn()
+        && request.resource.data.applicantUid == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.city is string
+        && request.resource.data.country is string
+        && request.resource.data.pastor is string
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.createdAt == request.time
+        && (!('logoUrl' in request.resource.data) || (request.resource.data.logoUrl is string && request.resource.data.logoUrl.matches('https://res\\.cloudinary\\.com/zkyyos4t/image/upload/.*')))
+        && request.resource.data.keys().hasOnly([
+          'name','city','country','pastor','email','language','estimatedMembers','logoUrl',
+          'applicantUid','status','createdAt','schemaVersion'
+        ]);
+      allow read: if signedIn() && (resource.data.applicantUid == request.auth.uid || isDeveloper());
+      allow update, delete: if false; // Admin SDK Cloud Functions perform moderation.
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create, update, delete: if false; // Profiles and roles are backend-managed.
+    }
+
+    match /churches/{churchId} {
+      allow read: if (resource.data.status == 'approved') || isDeveloper()
+        || hasChurchRole(churchId, ['pastor','secretary','finance','choir','prayer','auditor','member']);
+      allow create, update, delete: if false; // Cloud Functions provision and maintain churches.
+
+      match /members/{uid} {
+        allow read: if signedIn() && (request.auth.uid == uid || isDeveloper()
+          || hasChurchRole(churchId, ['pastor','secretary']));
+        allow create, update, delete: if false; // Cloud Functions enforce role assignment.
+      }
+      match /announcements/{itemId} {
+        allow read: if hasChurchRole(churchId, ['pastor','secretary','finance','choir','prayer','auditor','member']);
+        allow write: if hasChurchRole(churchId, ['pastor','secretary']);
+      }
+      match /prayers/{itemId} {
+        allow read: if signedIn() && (resource.data.ownerUid == request.auth.uid
+          || (resource.data.visibility == 'community' && hasChurchRole(churchId, ['pastor','prayer','member']))
+          || hasChurchRole(churchId, ['pastor','prayer']));
+        allow create: if signedIn() && hasChurchRole(churchId, ['pastor','prayer','member'])
+          && request.resource.data.ownerUid == request.auth.uid;
+        allow update, delete: if hasChurchRole(churchId, ['pastor','prayer']);
+      }
+      match /choir/{itemId} {
+        allow read: if hasChurchRole(churchId, ['pastor','choir','member']);
+        allow write: if hasChurchRole(churchId, ['pastor','choir']);
+      }
+      match /finance/{recordId} {
+        allow read: if hasChurchRole(churchId, ['pastor','finance','auditor']);
+        allow create, update: if hasChurchRole(churchId, ['pastor','finance']);
+        allow delete: if hasChurchRole(churchId, ['pastor']);
+      }
+    }
+
+    match /auditLogs/{logId} {
+      allow read: if isDeveloper();
+      allow write: if false; // Server-only audit log.
+    }
+  }
+}
