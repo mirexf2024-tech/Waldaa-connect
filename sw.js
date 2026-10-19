@@ -1,5 +1,5 @@
-/* Waldaa Connect Global v6 — static asset cache; private server data is not cached. */
-const CACHE_NAME = 'waldaa-connect-global-v6';
+/* Waldaa Connect Global v7 — static asset cache; private server data is not cached. */
+const CACHE_NAME = 'waldaa-connect-global-v7';
 const APP_ASSETS = [
   './',
   './index.html',
