@@ -1,7 +1,7 @@
-WALDAA CONNECT GLOBAL — VERSION 6 (NO-DEMO DATA BASELINE)
+WALDAA CONNECT GLOBAL — VERSION 7 (AUTH + PENDING APPLICATION FIX)
 ========================================================
 
-WHAT VERSION 6 CHANGES
+WHAT VERSION 7 CHANGES
 ----------------------
 - Removed seeded/example church, member, prayer, choir, community, finance, and notification records.
 - Removed the demo login and role dropdown. Users must sign in with Firebase Authentication; role is read from trusted Firebase claims/profile.
@@ -11,6 +11,12 @@ WHAT VERSION 6 CHANGES
 - Removed placeholder paragraphs pretending to be Scripture. The full Bible translation is NOT bundled; connect a licensed/public-domain translation before displaying real text or promising full offline reading.
 - Kept image compression and Cloudinary unsigned upload support for church logo/profile-image use. Unsigned assets may be public by URL; do not upload sensitive/private images without configuring appropriate access controls.
 - Updated service-worker cache to v6.
+
+- Fixed the pending church-applicant flow: after submitting an application, the applicant sees a dedicated pending-status page instead of being sent back to the welcome page.
+- On sign-in, if a Firebase account has no `/users/{uid}` profile yet, the frontend checks the signed-in user's own `churchApplications` record and shows the pending/rejected status instead of treating that account as a normal member.
+- Added a “refresh application status” action. After a Developer approves the application and the backend creates the user profile, refreshing attempts normal sign-in again.
+- Updated the service-worker cache name to v7 so deployed browsers can receive the updated frontend.
+- If `registerCurrentDevice` Cloud Function is not deployed (`functions/not-found` or unavailable), sign-in can continue with a clear warning; device binding is NOT active until the function is deployed. A permission-denied device-binding response still blocks sign-in.
 
 IMPORTANT STATUS
 ----------------
@@ -65,3 +71,9 @@ KNOWN ITEMS THAT STILL REQUIRE REAL INTEGRATION
 - Push notifications, backups/retention, abuse moderation, privacy policy, accessibility review and production testing.
 
 Do not remove these warnings until the corresponding service is implemented and tested. A clean UI is not proof of a deployed backend.
+
+
+V7 AUTH FLOW FIX
+- Church applicants with no /users/{uid} profile now see a pending-application page after sign-in instead of being silently left at the welcome screen.
+- Registration pauses the auth-state observer during account creation to avoid a race before the Firestore application is written.
+- This frontend fix still requires valid Firebase Authentication, deployed Firestore Rules, and deployed Cloud Functions. It cannot fix a Firebase permission/deployment error by itself.
