@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isDeveloper() { return signedIn() && request.auth.token.developer == true; }
+    function profile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function activeUser() { return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && profile().status == 'active'; }
+    function sameChurch(churchId) { return activeUser() && profile().churchId == churchId; }
+    function manager(churchId) { return sameChurch(churchId) && profile().role in ['pastor','secretary']; }
+    match /churchApplications/{id} {
+      allow create: if signedIn() && request.resource.data.applicantUid == request.auth.uid && request.resource.data.status == 'pending';
+      allow read: if isDeveloper() || (signedIn() && resource.data.applicantUid == request.auth.uid);
+      allow update, delete: if isDeveloper();
+    }
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isDeveloper() || (activeUser() && profile().churchId == resource.data.churchId && profile().role in ['pastor','secretary','finance','auditor']));
+      allow create, update, delete: if isDeveloper();
+    }
+    match /churches/{churchId} {
+      allow read: if isDeveloper() || sameChurch(churchId);
+      allow create, update, delete: if isDeveloper();
+      match /members/{memberId} {
+        allow read: if isDeveloper() || sameChurch(churchId);
+        allow create, update, delete: if isDeveloper() || manager(churchId);
+      }
+      match /{collection}/{docId} {
+        allow read: if isDeveloper() || sameChurch(churchId);
+        allow create, update, delete: if isDeveloper() || (sameChurch(churchId) && profile().role in ['pastor','secretary','finance','choir','prayer']);
+      }
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
