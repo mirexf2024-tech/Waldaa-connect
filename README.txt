@@ -1,8 +1,8 @@
-WALDAA CONNECT GLOBAL — VERSION 9 (FREE PLAN: no Blaze, no Cloud Functions, no credit card)
+WALDAA CONNECT GLOBAL — VERSION 10 (FREE PLAN: no Blaze, no Cloud Functions, no credit card)
 Firebase project: mifu-b6c97   |   Hosting: GitHub Pages (free)
 
 FOLDERS
-  (root)  index.html, live-data.js, customize.js, bible-import.js, customize.js, sw.js, manifest.webmanifest, icons, chat.js, chat.css, free-backend.js,
+  (root)  index.html, live-data.js, customize.js, bible-import.js, bible-reader.js, modules.js, customize.js, sw.js, manifest.webmanifest, icons, chat.js, chat.css, free-backend.js,
           firestore.rules, firestore.indexes.json, firebase.json, .firebaserc, .github/workflows
   paid-optional/  the old Cloud Functions + push notification files. NOT used. Keep only for a future paid plan.
 
@@ -102,3 +102,25 @@ VERSION 9 — DEVELOPER CUSTOMIZE + BIBLE FROM PDF  (re-publish firestore.rules!
   LIMITS (honest): scanned (image) PDFs have no text; old Amharic fonts can come out garbled: paste clean text instead.
      Verse splitting is automatic: always check the preview. pdf.js is loaded from cdnjs when you press the button.
      Free plan: each chapter is 1 write; a whole Bible is ~1,189 writes (daily free limit 20,000).
+
+
+VERSION 10 — NEW MODULES  (re-publish firestore.rules! no new index needed)
+  Sidebar > CHURCH now has: Calendar, Giving, Families, Sunday School, Pastoral care  (file: modules.js)
+  * Calendar (events/): month grid + upcoming list. Pastor/Secretary create events (service, youth, choir, women, men, other);
+    Choir leaders can create choir events. Everyone in the church can read.
+  * Giving: church accounts (Pastor edits: settings/giving) + "Developer support" accounts (Developer edits in Developer Console:
+    supportInfo/giving). Bank and Telebirr numbers have a COPY button. Payments are NOT processed in the app.
+  * Families (people/): Pastor/Secretary only (private). Groups by family, servant/volunteer + ministry, newcomers/visitors with
+    follow-up status (new, contacted, visited, joined), next follow-up date and an overdue warning.
+  * Sunday School / Bible study (classes/): Pastor/Secretary create classes, add students, take attendance per date, see history and
+    attendance rate. Other roles see only the class schedule (no student names).
+  * Pastoral care (care/): any member sends a PRIVATE request (topic, details, preferred date). Only the Pastor sees all requests
+    and schedules an appointment/replies; the member sees status and the Pastor's reply, and can cancel.
+  * Ads (ads/) = extra income: Developer Console > "Ads". Developer adds sponsor banners (title, text, https link) shown on Home.
+    No ad network is connected: you sell/arrange sponsors yourself. Pause or delete any time.
+  * Bible reader: tapping "Bible" opens a full-screen reader (bible-reader.js).
+  * Church registration fix: e-mail is saved in lower case (the phone keyboard capitalised the first letter and the rules rejected it),
+    an existing account is signed in instead of failing, duplicate pending applications are detected, and a clear success window is shown.
+    If it still fails, send me the exact red message you see.
+  Limits (honest): giving is information only; no push/e-mail reminders for appointments or follow-ups (needs a paid server);
+    Families data is private but typed by hand (not linked to login accounts); not tested in the Firebase emulator, test with 2-3 accounts.
