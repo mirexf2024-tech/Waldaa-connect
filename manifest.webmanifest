@@ -1,0 +1,20 @@
+{
+  "id": "./",
+  "name": "Waldaa Connect Global",
+  "short_name": "Waldaa Connect",
+  "description": "Global church community, management and spiritual growth platform.",
+  "lang": "om",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#001A3A",
+  "theme_color": "#003B82",
+  "categories": ["lifestyle", "social", "education"],
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "./icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,0 +1,146 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- helpers ----------
+    function signedIn() { return request.auth != null; }
+    function isDeveloper() { return signedIn() && request.auth.token.developer == true; }
+    function memberDoc(churchId) {
+      return get(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid));
+    }
+    function hasChurchRole(churchId, roles) {
+      return signedIn()
+        && memberDoc(churchId).data.status == 'active'
+        && memberDoc(churchId).data.role in roles;
+    }
+    function validMoney(d) {
+      return d.keys().hasAll(['amount', 'type', 'createdBy'])
+        && d.amount is number && d.amount > 0 && d.amount < 1000000000
+        && d.type in ['tithe', 'offering', 'donation', 'income', 'expense']
+        && d.createdBy == request.auth.uid;
+    }
+
+    // ---------- church applications ----------
+    match /churchApplications/{applicationId} {
+      allow create: if signedIn()
+        && request.resource.data.applicantUid == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.city is string
+        && request.resource.data.country is string
+        && request.resource.data.pastor is string
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.keys().hasOnly([
+          'name','city','country','pastor','email','language','estimatedMembers',
+          'applicantUid','status','createdAt','schemaVersion'
+        ]);
+      allow read: if signedIn() && (resource.data.applicantUid == request.auth.uid || isDeveloper());
+      allow update, delete: if false; // Cloud Functions moderate.
+    }
+
+    // ---------- users (backend-managed) ----------
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create, update, delete: if false;
+    }
+
+    // ---------- churches ----------
+    match /churches/{churchId} {
+      // FIX: no public read. Only the Developer and active members of this church.
+      allow read: if isDeveloper()
+        || hasChurchRole(churchId, ['pastor','secretary','finance','choir','prayer','auditor','member']);
+      allow create, update, delete: if false;
+
+      match /members/{uid} {
+        allow read: if signedIn() && (request.auth.uid == uid || isDeveloper()
+          || hasChurchRole(churchId, ['pastor','secretary']));
+        allow create, update, delete: if false;
+      }
+
+      match /announcements/{itemId} {
+        allow read: if hasChurchRole(churchId, ['pastor','secretary','finance','choir','prayer','auditor','member']);
+        allow write: if hasChurchRole(churchId, ['pastor','secretary']);
+      }
+
+      match /prayers/{itemId} {
+        allow read: if signedIn() && (resource.data.ownerUid == request.auth.uid
+          || (resource.data.visibility == 'community' && hasChurchRole(churchId, ['pastor','prayer','member']))
+          || hasChurchRole(churchId, ['pastor','prayer']));
+        allow create: if signedIn() && hasChurchRole(churchId, ['pastor','prayer','member'])
+          && request.resource.data.ownerUid == request.auth.uid;
+        allow update: if hasChurchRole(churchId, ['pastor','prayer']);
+        allow delete: if hasChurchRole(churchId, ['pastor','prayer'])
+          || (signedIn() && resource.data.ownerUid == request.auth.uid);
+      }
+
+      match /choir/{itemId} {
+        allow read: if hasChurchRole(churchId, ['pastor','choir','member']);
+        allow write: if hasChurchRole(churchId, ['pastor','choir']);
+      }
+
+      // FIX: finance ledger is append-only and validated. Corrections = new reversing entry.
+      match /finance/{recordId} {
+        allow read: if hasChurchRole(churchId, ['pastor','finance','auditor']);
+        allow create: if hasChurchRole(churchId, ['pastor','finance']) && validMoney(request.resource.data);
+        allow update, delete: if false;
+      }
+
+      // ---------- chat (v5) ----------
+      match /chats/{chatId} {
+        function chat() { return get(/databases/$(database)/documents/churches/$(churchId)/chats/$(chatId)).data; }
+        allow read: if signedIn() && request.auth.uid in resource.data.members;
+        allow create, update, delete: if false; // createChat / message trigger (Cloud Functions)
+
+        match /messages/{msgId} {
+          allow read: if signedIn() && request.auth.uid in chat().members;
+          allow create: if hasChurchRole(churchId, ['pastor','secretary','finance','choir','prayer','auditor','member'])
+            && request.auth.uid in chat().members
+            && (chat().type != 'channel' || hasChurchRole(churchId, ['pastor','secretary']))
+            && request.resource.data.senderUid == request.auth.uid
+            && request.resource.data.createdAt == request.time
+            && request.resource.data.text is string && request.resource.data.text.size() <= 4000
+            && (request.resource.data.text.size() > 0 || request.resource.data.keys().hasAny(['attachment']))
+            && request.resource.data.keys().hasOnly(['text','senderUid','createdAt','replyTo','attachment'])
+            && (!request.resource.data.keys().hasAny(['attachment'])
+                || (request.resource.data.attachment.url is string
+                    && request.resource.data.attachment.url.matches('https://res\\.cloudinary\\.com/.*')
+                    && request.resource.data.attachment.kind in ['image','audio','file']));
+          allow update: if signedIn() && resource.data.senderUid == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted']);
+          allow delete: if false;
+        }
+      }
+
+      match /chatReads/{uid} {
+        allow read, write: if signedIn() && request.auth.uid == uid
+          && hasChurchRole(churchId, ['pastor','secretary','finance','choir','prayer','auditor','member']);
+      }
+
+      // NEW: members submit payment references; Finance verifies or rejects.
+      match /paymentRefs/{refId} {
+        allow create: if signedIn() && hasChurchRole(churchId, ['pastor','secretary','finance','choir','prayer','auditor','member'])
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.status == 'pending'
+          && request.resource.data.amount is number && request.resource.data.amount > 0
+          && request.resource.data.amount < 1000000000;
+        allow read: if hasChurchRole(churchId, ['pastor','finance','auditor'])
+          || (signedIn() && resource.data.uid == request.auth.uid);
+        allow update: if hasChurchRole(churchId, ['finance'])
+          && request.resource.data.status in ['verified', 'rejected']
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'verifiedBy', 'verifiedAt', 'note']);
+        allow delete: if false;
+      }
+    }
+
+    // ---------- audit logs (server-only) ----------
+    match /auditLogs/{logId} {
+      allow read: if isDeveloper();
+      allow write: if false;
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}
