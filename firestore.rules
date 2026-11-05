@@ -1,17 +1,40 @@
 rules_version = '2';
+// WALDAA CONNECT GLOBAL: FREE-PLAN (Spark) rules. No Cloud Functions: these rules are the server-side authority.
 service cloud.firestore {
   match /databases/{database}/documents {
 
     // ---------- helpers ----------
     function signedIn() { return request.auth != null; }
-    function isDeveloper() { return signedIn() && request.auth.token.developer == true; }
+    function verified() { return signedIn() && request.auth.token.email_verified == true; }
+    function isDeveloper() {
+      return signedIn() && (request.auth.token.developer == true
+        || exists(/databases/$(database)/documents/developers/$(request.auth.uid)));
+    }
+    function allRoles() { return ['pastor','secretary','finance','choir','prayer','auditor','member']; }
     function memberDoc(churchId) {
       return get(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid));
     }
     function hasChurchRole(churchId, roles) {
-      return signedIn()
-        && memberDoc(churchId).data.status == 'active'
-        && memberDoc(churchId).data.role in roles;
+      return signedIn() && memberDoc(churchId).data.status == 'active' && memberDoc(churchId).data.role in roles;
+    }
+    function appDoc(id) { return get(/databases/$(database)/documents/churchApplications/$(id)).data; }
+    function inviteDoc(id) { return get(/databases/$(database)/documents/invites/$(id)).data; }
+    // First sign-in after developer approval: the applicant becomes pastor of the approved church.
+    function claimsAsPastor(d, cid) {
+      return verified() && d.keys().hasAny(['applicationId'])
+        && appDoc(d.applicationId).applicantUid == request.auth.uid
+        && appDoc(d.applicationId).status == 'approved'
+        && appDoc(d.applicationId).churchId == cid
+        && d.role == 'pastor' && d.status == 'active';
+    }
+    // First sign-in of an invited person (invite id = their verified email).
+    function claimsAsInvitee(d, cid) {
+      return verified() && d.keys().hasAny(['inviteId'])
+        && d.inviteId == request.auth.token.email.lower()
+        && inviteDoc(d.inviteId).status == 'pending'
+        && inviteDoc(d.inviteId).churchId == cid
+        && inviteDoc(d.inviteId).role == d.role
+        && d.status == 'active';
     }
     function validMoney(d) {
       return d.keys().hasAll(['amount', 'type', 'createdBy'])
@@ -20,48 +43,114 @@ service cloud.firestore {
         && d.createdBy == request.auth.uid;
     }
 
+    // ---------- developers (create documents ONLY from Firebase Console) ----------
+    match /developers/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // ---------- app customization (public read, Developer-only write) ----------
+    match /appConfig/{docId} {
+      allow read: if true;
+      allow create, update: if isDeveloper() && docId == 'main'
+        && request.resource.data.keys().hasOnly(['brand','sub','greeting','verseText','verseRef','primary','gold','scale','radius','density','hidden','labels','updatedAt','updatedBy'])
+        && request.resource.data.brand is string && request.resource.data.brand.size() >= 1 && request.resource.data.brand.size() <= 40
+        && request.resource.data.scale is number && request.resource.data.scale >= 85 && request.resource.data.scale <= 125
+        && request.resource.data.radius is number && request.resource.data.radius >= 6 && request.resource.data.radius <= 30
+        && request.resource.data.density in ['compact','normal','comfortable']
+        && request.resource.data.primary.matches('^#[0-9a-fA-F]{6}$') && request.resource.data.gold.matches('^#[0-9a-fA-F]{6}$')
+        && request.resource.data.updatedBy == request.auth.uid;
+      allow delete: if isDeveloper() && docId == 'main';
+    }
+
     // ---------- church applications ----------
     match /churchApplications/{applicationId} {
       allow create: if signedIn()
         && request.resource.data.applicantUid == request.auth.uid
         && request.resource.data.status == 'pending'
         && request.resource.data.name is string
-        && request.resource.data.name.size() >= 2
-        && request.resource.data.name.size() <= 120
-        && request.resource.data.city is string
-        && request.resource.data.country is string
+        && request.resource.data.name.size() >= 2 && request.resource.data.name.size() <= 120
+        && request.resource.data.city is string && request.resource.data.country is string
         && request.resource.data.pastor is string
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.createdAt == request.time
-        && request.resource.data.keys().hasOnly([
-          'name','city','country','pastor','email','language','estimatedMembers',
-          'applicantUid','status','createdAt','schemaVersion'
-        ]);
+        && request.resource.data.keys().hasOnly(['name','city','country','pastor','email','language','estimatedMembers','applicantUid','status','createdAt','schemaVersion']);
       allow read: if signedIn() && (resource.data.applicantUid == request.auth.uid || isDeveloper());
-      allow update, delete: if false; // Cloud Functions moderate.
+      allow update: if isDeveloper() && resource.data.status == 'pending'
+        && request.resource.data.status in ['approved', 'rejected']
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status','churchId','approvedAt','approvedBy','rejectionReason','rejectedBy','rejectedAt']);
+      allow delete: if false;
     }
 
-    // ---------- users (backend-managed) ----------
+    // ---------- invites (pastor invites by email; the person claims after verifying that email) ----------
+    match /invites/{emailId} {
+      allow create: if signedIn()
+        && emailId.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$') && emailId == emailId.lower()
+        && request.resource.data.keys().hasOnly(['churchId','role','name','phone','status','createdBy','createdAt'])
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.role in ['secretary','finance','choir','prayer','auditor','member']
+        && hasChurchRole(request.resource.data.churchId, ['pastor']);
+      allow read: if signedIn() && ((verified() && request.auth.token.email.lower() == emailId)
+        || hasChurchRole(resource.data.churchId, ['pastor']));
+      allow update: if (hasChurchRole(resource.data.churchId, ['pastor']) && resource.data.status == 'pending'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role','name','phone']))
+        || (verified() && request.auth.token.email.lower() == emailId && request.resource.data.status == 'claimed'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','claimedBy','claimedAt']));
+      allow delete: if false;
+    }
+
+    // ---------- users ----------
     match /users/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
-      allow create, update, delete: if false;
+      allow create: if signedIn() && request.auth.uid == uid && request.resource.data.uid == uid
+        && (claimsAsPastor(request.resource.data, request.resource.data.churchId)
+            || claimsAsInvitee(request.resource.data, request.resource.data.churchId));
+      allow update: if hasChurchRole(resource.data.churchId, ['pastor']) && resource.data.role != 'pastor'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','role'])
+        && request.resource.data.role in ['secretary','finance','choir','prayer','auditor','member'];
+      allow delete: if false;
+    }
+
+    // ---------- auditLogs (Developer actions) ----------
+    match /auditLogs/{logId} {
+      allow read: if isDeveloper();
+      allow create: if isDeveloper() && request.resource.data.actorUid == request.auth.uid;
+      allow update, delete: if false;
     }
 
     // ---------- churches ----------
     match /churches/{churchId} {
-      // FIX: no public read. Only the Developer and active members of this church.
-      allow read: if isDeveloper()
-        || hasChurchRole(churchId, ['pastor','secretary','finance','choir','prayer','auditor','member']);
-      allow create, update, delete: if false;
+      allow read: if isDeveloper() || hasChurchRole(churchId, allRoles());
+      allow create: if isDeveloper() && request.resource.data.status == 'approved';
+      allow update: if isDeveloper();
+      allow delete: if false;
 
       match /members/{uid} {
-        allow read: if signedIn() && (request.auth.uid == uid || isDeveloper()
-          || hasChurchRole(churchId, ['pastor','secretary']));
-        allow create, update, delete: if false;
+        allow read: if signedIn() && (request.auth.uid == uid || isDeveloper() || hasChurchRole(churchId, ['pastor','secretary']));
+        allow create: if signedIn() && request.auth.uid == uid
+          && (claimsAsPastor(request.resource.data, churchId) || claimsAsInvitee(request.resource.data, churchId));
+        allow update: if hasChurchRole(churchId, ['pastor']) && resource.data.role != 'pastor'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','role'])
+          && request.resource.data.role in ['secretary','finance','choir','prayer','auditor','member'];
+        allow delete: if false;
+      }
+
+      // Names and roles only (no email/phone): lets members start chats.
+      match /directory/{uid} {
+        allow read: if isDeveloper() || hasChurchRole(churchId, allRoles());
+        allow create: if signedIn() && request.auth.uid == uid
+          && (claimsAsPastor(request.resource.data, churchId) || claimsAsInvitee(request.resource.data, churchId));
+        allow update: if hasChurchRole(churchId, ['pastor']) && resource.data.role != 'pastor'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','role'])
+          && request.resource.data.role in ['secretary','finance','choir','prayer','auditor','member'];
+        allow delete: if false;
       }
 
       match /announcements/{itemId} {
-        allow read: if hasChurchRole(churchId, ['pastor','secretary','finance','choir','prayer','auditor','member']);
+        allow read: if hasChurchRole(churchId, allRoles());
         allow write: if hasChurchRole(churchId, ['pastor','secretary']);
       }
 
@@ -69,11 +158,9 @@ service cloud.firestore {
         allow read: if signedIn() && (resource.data.ownerUid == request.auth.uid
           || (resource.data.visibility == 'community' && hasChurchRole(churchId, ['pastor','prayer','member']))
           || hasChurchRole(churchId, ['pastor','prayer']));
-        allow create: if signedIn() && hasChurchRole(churchId, ['pastor','prayer','member'])
-          && request.resource.data.ownerUid == request.auth.uid;
+        allow create: if hasChurchRole(churchId, allRoles()) && request.resource.data.ownerUid == request.auth.uid;
         allow update: if hasChurchRole(churchId, ['pastor','prayer']);
-        allow delete: if hasChurchRole(churchId, ['pastor','prayer'])
-          || (signedIn() && resource.data.ownerUid == request.auth.uid);
+        allow delete: if hasChurchRole(churchId, ['pastor','prayer']) || (signedIn() && resource.data.ownerUid == request.auth.uid);
       }
 
       match /choir/{itemId} {
@@ -81,24 +168,56 @@ service cloud.firestore {
         allow write: if hasChurchRole(churchId, ['pastor','choir']);
       }
 
-      // FIX: finance ledger is append-only and validated. Corrections = new reversing entry.
+      // Finance ledger: append-only. Corrections = new reversing entry.
       match /finance/{recordId} {
         allow read: if hasChurchRole(churchId, ['pastor','finance','auditor']);
         allow create: if hasChurchRole(churchId, ['pastor','finance']) && validMoney(request.resource.data);
         allow update, delete: if false;
       }
 
-      // ---------- chat (v5) ----------
+      match /paymentRefs/{refId} {
+        allow create: if hasChurchRole(churchId, allRoles())
+          && request.resource.data.uid == request.auth.uid && request.resource.data.status == 'pending'
+          && request.resource.data.amount is number && request.resource.data.amount > 0 && request.resource.data.amount < 1000000000;
+        allow read: if hasChurchRole(churchId, ['pastor','finance','auditor']) || (signedIn() && resource.data.uid == request.auth.uid);
+        allow update: if hasChurchRole(churchId, ['pastor','finance'])
+          && request.resource.data.status in ['verified', 'rejected']
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','verifiedBy','verifiedAt','note']);
+        allow delete: if false;
+      }
+
+      // ---------- chat (client-side, no functions) ----------
       match /chats/{chatId} {
         function chat() { return get(/databases/$(database)/documents/churches/$(churchId)/chats/$(chatId)).data; }
-        allow read: if signedIn() && request.auth.uid in resource.data.members;
-        allow create, update, delete: if false; // createChat / message trigger (Cloud Functions)
+        function isChannel(d) { return d.type == 'channel'; }
+        allow read: if signedIn() && (request.auth.uid in resource.data.members
+          || (resource.data.type == 'channel' && hasChurchRole(churchId, allRoles())));
+        allow create: if hasChurchRole(churchId, allRoles())
+          && request.resource.data.keys().hasOnly(['type','name','members','names','createdBy','createdAt','lastAt','lastMessage'])
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.createdAt == request.time && request.resource.data.lastAt == request.time
+          && request.resource.data.lastMessage == null
+          && request.auth.uid in request.resource.data.members
+          && request.resource.data.members.size() <= 200
+          && request.resource.data.type in ['direct','group','channel']
+          && (request.resource.data.type == 'direct'
+                ? (request.resource.data.members.size() == 2
+                   && chatId == 'dm_' + request.resource.data.members[0] + '_' + request.resource.data.members[1])
+                : (hasChurchRole(churchId, ['pastor','secretary'])
+                   && request.resource.data.name is string
+                   && request.resource.data.name.size() >= 2 && request.resource.data.name.size() <= 80));
+        allow update: if hasChurchRole(churchId, allRoles())
+          && (request.auth.uid in resource.data.members || (resource.data.type == 'channel' && hasChurchRole(churchId, ['pastor','secretary'])))
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage','lastAt'])
+          && request.resource.data.lastMessage.senderUid == request.auth.uid
+          && request.resource.data.lastAt == request.time;
+        allow delete: if false;
 
         match /messages/{msgId} {
-          allow read: if signedIn() && request.auth.uid in chat().members;
-          allow create: if hasChurchRole(churchId, ['pastor','secretary','finance','choir','prayer','auditor','member'])
-            && request.auth.uid in chat().members
-            && (chat().type != 'channel' || hasChurchRole(churchId, ['pastor','secretary']))
+          allow read: if signedIn() && (request.auth.uid in chat().members
+            || (chat().type == 'channel' && hasChurchRole(churchId, allRoles())));
+          allow create: if hasChurchRole(churchId, allRoles())
+            && (chat().type == 'channel' ? hasChurchRole(churchId, ['pastor','secretary']) : request.auth.uid in chat().members)
             && request.resource.data.senderUid == request.auth.uid
             && request.resource.data.createdAt == request.time
             && request.resource.data.text is string && request.resource.data.text.size() <= 4000
@@ -115,30 +234,29 @@ service cloud.firestore {
       }
 
       match /chatReads/{uid} {
-        allow read, write: if signedIn() && request.auth.uid == uid
-          && hasChurchRole(churchId, ['pastor','secretary','finance','choir','prayer','auditor','member']);
-      }
-
-      // NEW: members submit payment references; Finance verifies or rejects.
-      match /paymentRefs/{refId} {
-        allow create: if signedIn() && hasChurchRole(churchId, ['pastor','secretary','finance','choir','prayer','auditor','member'])
-          && request.resource.data.uid == request.auth.uid
-          && request.resource.data.status == 'pending'
-          && request.resource.data.amount is number && request.resource.data.amount > 0
-          && request.resource.data.amount < 1000000000;
-        allow read: if hasChurchRole(churchId, ['pastor','finance','auditor'])
-          || (signedIn() && resource.data.uid == request.auth.uid);
-        allow update: if hasChurchRole(churchId, ['finance'])
-          && request.resource.data.status in ['verified', 'rejected']
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'verifiedBy', 'verifiedAt', 'note']);
-        allow delete: if false;
+        allow read, write: if signedIn() && request.auth.uid == uid && hasChurchRole(churchId, allRoles());
       }
     }
 
-    // ---------- audit logs (server-only) ----------
-    match /auditLogs/{logId} {
-      allow read: if isDeveloper();
-      allow write: if false;
+    // ---------- Bible text (Developer imports PDF text per chapter; every signed-in user reads) ----------
+    match /bibleVersions/{vid} {
+      allow read: if signedIn();
+      allow create: if isDeveloper()
+        && request.resource.data.keys().hasOnly(['name','lang','rights','createdBy','createdAt'])
+        && request.resource.data.lang in ['om','am','en'] && request.resource.data.rights == true
+        && request.resource.data.name is string && request.resource.data.name.size() >= 2 && request.resource.data.name.size() <= 80
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if isDeveloper();
+      match /chapters/{chId} {
+        allow read: if signedIn();
+        allow create, update: if isDeveloper()
+          && request.resource.data.keys().hasOnly(['book','chapter','verses','by','updatedAt'])
+          && request.resource.data.book is int && request.resource.data.book >= 0 && request.resource.data.book < 66
+          && request.resource.data.chapter is int && request.resource.data.chapter >= 1 && request.resource.data.chapter <= 150
+          && chId == string(request.resource.data.book) + '_' + string(request.resource.data.chapter)
+          && request.resource.data.verses is list && request.resource.data.verses.size() >= 1 && request.resource.data.verses.size() <= 250;
+        allow delete: if isDeveloper();
+      }
     }
 
     match /{document=**} { allow read, write: if false; }

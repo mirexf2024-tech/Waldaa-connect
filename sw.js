@@ -1,7 +1,7 @@
-/* Waldaa Connect Global — offline cache v5 */
-const CACHE_NAME = 'waldaa-connect-global-v5';
+/* Waldaa Connect Global — offline cache v9 */
+const CACHE_NAME = 'waldaa-connect-global-v9';
 const APP_ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png',
-  './icon-maskable-192.png', './icon-maskable-512.png', './apple-touch-icon.png', './favicon-32.png', './chat.js', './chat.css'];
+  './icon-maskable-192.png', './icon-maskable-512.png', './apple-touch-icon.png', './favicon-32.png', './chat.js', './chat.css', './free-backend.js', './live-data.js', './customize.js', './bible-import.js'];
 const isFirebaseSdk = url => url.hostname === 'www.gstatic.com' && url.pathname.startsWith('/firebasejs/');
 
 self.addEventListener('install', event => {

@@ -1,79 +1,104 @@
-WALDAA CONNECT GLOBAL — VERSION 4 (fixed package)
-=================================================
+WALDAA CONNECT GLOBAL — VERSION 9 (FREE PLAN: no Blaze, no Cloud Functions, no credit card)
+Firebase project: mifu-b6c97   |   Hosting: GitHub Pages (free)
 
-FOLDER STRUCTURE (upload exactly like this to the GitHub repo root)
-  index.html, sw.js, manifest.webmanifest, firebase.json, firestore.rules
-  icon-192.png, icon-512.png, icon-maskable-192.png, icon-maskable-512.png,
-  apple-touch-icon.png, favicon-32.png
-  functions/index.js, functions/package.json
-  tools/setDeveloperClaim.js          (run in Cloud Shell only; never needed by the website)
-  .github/workflows/firebase-deploy.yml
+FOLDERS
+  (root)  index.html, live-data.js, customize.js, bible-import.js, customize.js, sw.js, manifest.webmanifest, icons, chat.js, chat.css, free-backend.js,
+          firestore.rules, firestore.indexes.json, firebase.json, .firebaserc, .github/workflows
+  paid-optional/  the old Cloud Functions + push notification files. NOT used. Keep only for a future paid plan.
 
-WHAT WAS FIXED
-  1. firebase.json / functions/ / tools/ placed with the correct names and paths.
-  2. App icons added (192, 512, maskable, Apple touch, favicon); manifest and index.html link to them.
-  3. sw.js v4: one missing file no longer breaks installation; Firebase SDK is cached for offline start.
-  4. firestore.rules:
-     - churches are no longer publicly readable (Developer + active members only)
-     - finance ledger is append-only and validated (no update/delete, even by Pastor)
-     - paymentRefs added: members submit references, only Finance verifies/rejects
-     - members can delete their own prayer requests
-  5. index.html: icon links and brand theme color; "demo" removed from the description.
+HOW IT WORKS WITHOUT A SERVER
+  * Firestore Security Rules are the only authority (they run on Google's side, free).
+  * Church approval: Developer clicks Approve -> church document is created. The applicant verifies the e-mail,
+    signs in, and the app creates their pastor profile (rules check the approved application).
+  * Members: Pastor "invites" an e-mail + role. The person taps "Account uumi" (button on the login page) with THAT e-mail,
+    verifies it, signs in, and joins the church. (Pastor can no longer create passwords for people.)
+  * Developer: a document developers/<UID> created by you in Firebase Console (no terminal).
+  * Chat: all in the browser (chats, groups, channels, replies, delete, photos, files, voice, search, unread).
+  * Photos/files/voice: Cloudinary UNSIGNED upload preset (free, no secret).
 
-STILL NOT DONE (be honest before going to production)
-  - Prayer, choir, announcements, finance, reading progress, saved verses and notes still use
-    browser localStorage in index.html. They must be migrated to Firestore module by module.
-  - Full Bible text, Cloudinary uploads, push notifications and App Check are not included yet.
+SETUP — everything in the browser (about 20 minutes)
+ 1. GitHub: upload all files to the repo root (replace old ones). Settings > Pages > Branch main / root > Save.
+ 2. Firebase Console > project mifu-b6c97 (stay on the free Spark plan):
+    a) Authentication > Get started > Sign-in method > Email/Password > Enable.
+    b) Authentication > Settings > Authorized domains > add  YOURNAME.github.io
+    c) Firestore Database > Create database > production mode > choose a location (cannot change later).
+    d) Firestore > Rules tab > delete everything > paste firestore.rules > Publish.
+    e) Firestore > Indexes > Composite > Add index: collection ID  chats ; fields  members = Arrays ,
+       lastAt = Descending ; query scope Collection > Create. (Wait until status = Enabled.)
+ 3. Developer account:
+    a) Authentication > Users > Add user: your e-mail + password. Copy its "User UID".
+    b) Firestore > Start collection > Collection ID: developers > Document ID: paste the UID >
+       add a field  enabled (boolean) = true > Save.
+    c) Open the app and sign in with that account: you see the Developer console.
+ 4. Cloudinary (free): Settings > Upload > Upload presets > Add: Signing mode = UNSIGNED, set a folder,
+    max file size 10 MB, allowed formats (jpg, png, webp, pdf, webm, m4a, mp3, mp4).
+    Put your Cloud name and the preset name in chat.js:  CFG.CLOUD_NAME  and  CFG.UPLOAD_PRESET.
+ 5. Test with two e-mails:
+    church application (verify e-mail) -> Developer Approve -> applicant signs in (becomes Pastor)
+    -> Pastor invites member e-mail -> member taps "Account uumi", verifies, signs in -> chat each other.
+    Also try to read another church's data and to post in a channel as a member: both must fail.
 
-DEPLOY WITHOUT A LOCAL TERMINAL
-  A) Firebase Console: upgrade project mifu-b6c97 to the Blaze plan (needed for Functions).
-  B) Enable Authentication > Sign-in method > Email/Password.
-     Add your GitHub Pages domain under Authentication > Settings > Authorized domains.
-  C) Google Cloud Console > IAM > Service Accounts: create a key (JSON) with the roles
-     Firebase Admin and Cloud Functions Admin. In GitHub: Settings > Secrets > Actions >
-     New secret named FIREBASE_SERVICE_ACCOUNT, paste the whole JSON. Never commit this file.
-  D) Commit this package to the repo. The workflow deploys rules + functions on every push to main
-     (or run it manually from the Actions tab).
-  E) GitHub Pages: Settings > Pages > Branch main / root.
-  F) First Developer account: register in the app, verify the email, copy the UID from
-     Firebase Console > Authentication. Open https://shell.cloud.google.com, then run:
-        git clone <your-repo-url> && cd <repo>/functions && npm install firebase-admin
-        node ../tools/setDeveloperClaim.js THE_UID
-     Sign out and sign in again.
-  G) Test with a second email: church application > verify email > Developer approves >
-     Pastor adds a member. Test the rules in the Rules Playground before real finance data.
+OPTIONAL: auto-deploy rules from GitHub (free): create a service account key (Google Cloud > IAM > Service Accounts,
+  role "Firebase Rules Admin"), save the JSON as GitHub secret FIREBASE_SERVICE_ACCOUNT. Otherwise skip it.
+
+FREE-PLAN LIMITS (Spark, as far as I know): 50,000 reads and 20,000 writes per day, 1 GB stored.
+  Chat listeners count reads: fine for small/medium churches; watch the usage tab in Firebase Console.
+
+WHAT YOU LOSE ON THE FREE PLAN (honest)
+  * No push notifications when the app is closed (needs a server). Unread dots/badges work while the app is open.
+  * No server-side audit of pastor actions; only Developer approvals are logged (auditLogs).
+  * Cloudinary unsigned presets can be abused by anyone who learns the preset name: restrict it (size, formats, folder)
+    and watch your Cloudinary usage.
+  * Chat sender names are written by the clients (cosmetic spoofing possible); message ownership is enforced by rules.
+  * Bible TEXT is added by the Developer from PDF (see VERSION 9). Until then the reader says it is not added yet.
+  * The AI assistant (canned answers) was REMOVED. A real one needs a server/API.
+  * Reading progress, saved verses and private notes are personal and stay on the device of each signed-in user.
+  * Members cannot yet submit payment references from the UI (rules + data are ready; only pastor/finance record entries).
+  * Likes and comments on announcements were removed (they need extra collections); announcements are posted by pastor/secretary.
+  * The rules were written carefully but NOT run in an emulator here. Test them in Rules Playground first.
 
 
-=====================================================================
-VERSION 6 (project mifu-b6c97) — CHAT (Telegram-style) : NEW FILES
-=====================================================================
-  chat.js, chat.css, firebase-messaging-sw.js, firestore.indexes.json,
-  functions/chat.js, functions/upload.js, functions/common.js, functions/.env
-  Changed: sw.js (v5), firestore.rules (chats, messages, chatReads), firebase.json, index.html
-  (only 2 tags added: chat.css in <head>, chat.js before </body>), functions/index.js (1 line at the end),
-  .github/workflows/firebase-deploy.yml (also deploys indexes).
+VERSION 8 — ALL DEMO DATA REMOVED
+  Demo login, demo churches/members/prayers/songs/posts/donations, role switcher and "reset demo" are gone.
+  Everything now comes from Firestore (live-data.js) and is protected by firestore.rules:
+    prayers, choir songs, announcements, finance ledger (append-only), payment references (pending -> verified by
+    pastor/finance, which appends the ledger entry), member directory/count, roles (pastor can change roles),
+    notifications and home activity (derived from real announcements/prayers).
+  A new account starts completely EMPTY. Add real data through the app.
+  Rules changed in v8 (re-publish firestore.rules in Firebase Console!): any member can create prayer requests,
+  pastor/finance can verify payment references, pastor can change member roles (not pastor/developer).
+  Old browser demo data (key wcg_demo_v1) is deleted automatically on first load.
 
-FEATURES
-  Direct chats, groups, channels (only Pastor/Secretary post), replies, delete own message,
-  photos, files, voice notes (Cloudinary), unread dot + badge, search (chat list + inside a chat),
-  push notifications (FCM), 3 languages (follows the app language), dark/light.
-  Offline: opened chats load from the cache; messages written offline are sent when online again.
 
-SETUP (once)
-  1. Cloudinary: copy Cloud name + API key into functions/.env (replace the YOUR_ placeholders).
-     Store the API Secret ONLY as a secret. In Cloud Shell (https://shell.cloud.google.com):
-        firebase login --no-localhost        (then follow the link)
-        firebase functions:secrets:set CLOUDINARY_API_SECRET --project mifu-b6c97
-     Service account of the GitHub workflow also needs roles: Secret Manager Admin,
-     Service Account User, Cloud Datastore Index Admin (or simply "Editor" while testing).
-  2. Push: Firebase Console > Project settings > Cloud Messaging > Web Push certificates >
-     Generate key pair. Paste the public key into chat.js (CFG.VAPID_KEY).
-  3. Commit everything. The workflow deploys rules, indexes and functions.
-     The first deploy of a Firestore-trigger function can fail once while Google enables
-     Eventarc/Pub/Sub: wait 3-5 minutes and re-run the workflow.
-  4. Test with 2 accounts: Pastor creates a channel + a group; member sends text, photo, voice;
-     check that a member can NOT write in a channel, and can NOT read another church's chats.
-     Run the rules in the Firebase Emulator / Rules Playground before real use.
+VERSION 9 — DEVELOPER CUSTOMIZATION
+  Developer Console > "Customize app" lets the Developer change, for ALL users at once (live):
+    * app name + subtitle, 3 brand colours (defaults are your brand: Navy #001A3A, Blue #003B82, Gold #FCD116)
+    * text/page size (80%-140%), card roundness, sidebar width  (make things smaller or bigger)
+    * which pages each role can see (can only hide pages the role already had; Home/Profile/Settings stay)
+    * home page: verse of the day, welcome message, show/hide the 4 home cards
+    * rename menu labels per language (Afaan Oromoo / English / Amharic)
+    * "Durtii deebisi" returns everything to the defaults.
+  Stored in Firestore document appConfig/main: everyone can READ it, only the Developer can WRITE it (rules).
+  Hiding a page only hides it in the menu/app. Data security is still enforced by firestore.rules, not by hiding.
+  Re-publish firestore.rules after updating (new appConfig block).
+  NOT included: drag-and-drop layout, adding brand-new pages/widgets, changing the logo image.
 
-NOT INCLUDED (honest): voice/video calls, end-to-end encryption, message editing, forwarding,
-  read receipts per message, member removal from groups. Old tokens are cleaned on failed push.
+
+VERSION 9 — DEVELOPER CUSTOMIZE + BIBLE FROM PDF  (re-publish firestore.rules!)
+  Developer Console now has two cards:
+  1) Customize app  (data: appConfig/main, public read, only Developer writes)
+     app name + subtitle, home greeting, home verse + reference, main/gold colors, page size 85-125%,
+     corner radius, density (compact/normal/comfortable), which pages each role can see (table),
+     and page names per language (Afaan Oromoo / Amharic / English). "Reset" returns to the defaults.
+     Home, Profile and Settings always stay visible; Developer always sees everything.
+  2) Macaafa Qulqulluu — PDF  (data: bibleVersions/{id}/chapters/{book}_{chapter})
+     a) create a Version (name + language + tick "I have the right to publish this text"), or pick an existing one
+     b) choose the Book (66), choose the PDF, optional page range, press "Barruu baasi" (text is extracted in the browser)
+     c) edit the text if needed, press "Boqonnaa boqonnaan hiri": chapters are detected from headings
+        ("Boqonnaa 1 / Chapter 1 / ምዕራፍ 1" or lone numbers) and verses from verse numbers 1,2,3...
+        Fill "Boqonnaa tokko qofa" to import ONE chapter only (chapter-by-chapter).
+     d) open each chapter in the preview to correct it, then "Kuusi (Firestore)".
+     Readers choose the version at the top of the Bible page; the language follows the app language.
+  LIMITS (honest): scanned (image) PDFs have no text; old Amharic fonts can come out garbled: paste clean text instead.
+     Verse splitting is automatic: always check the preview. pdf.js is loaded from cdnjs when you press the button.
+     Free plan: each chapter is 1 write; a whole Bible is ~1,189 writes (daily free limit 20,000).
